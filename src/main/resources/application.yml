@@ -1,0 +1,50 @@
+server:
+  port: 19060
+  compression:
+    enabled: true
+  http2:
+    enabled: true
+  servlet:
+    application-display-name: sdk.task
+    session:
+      timeout: 1m
+  tomcat:
+    basedir: .
+    accesslog:
+      directory: log
+      enabled: true
+      file-date-format: .yyyyMMdd.HH
+      buffered: false
+      rename-on-rotate: true
+      prefix: access
+      pattern: '%h %t [%I] "%r" %s %b %D %F "%{Referer}i" "%{User-Agent}i"'
+
+spring:
+  ## scheduling
+  task:
+    scheduling:
+      pool:
+        size: 20
+  ## jackson
+  jackson:
+    parser:
+      ALLOW_SINGLE_QUOTES: true
+      ALLOW_UNQUOTED_FIELD_NAMES: true
+    deserialization:
+      FAIL_ON_UNKNOWN_PROPERTIES: false
+    default-property-inclusion: NON_NULL
+    generator:
+      AUTO_CLOSE_TARGET: false
+      IGNORE_UNKNOWN: true
+  ## freemarker
+  freemarker:
+    charset: UTF-8
+    suffix: .ftl
+    settings:
+      dateFormat: yyyy-MM-dd
+      datetime_format: yyyy-MM-dd HH:mm:ss
+      whitespaceStripping: true
+      numberFormat: 0.##
+
+  profiles:
+    active: dev

@@ -1,0 +1,8 @@
+logging:
+  config: classpath:log4j2-prod.xml
+
+app:
+  env: prod
+  dcenter: 1
+  dtask: replace_to_dtask_host
+  groupId: om.sc.task

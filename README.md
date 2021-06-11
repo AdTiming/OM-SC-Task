@@ -1,6 +1,6 @@
-# OpenMediation  SC Task
+# OpenMediation SubCenter Task
 
-OM-SC-Task is a server for Cross Promotion Impression Cap control.
+OM-SC-Task is a server for sub center redis control.
 
 **Before started, you should download and run [OM-Dtask](https://github.com/AdTiming/OM-Dtask) first.**
 

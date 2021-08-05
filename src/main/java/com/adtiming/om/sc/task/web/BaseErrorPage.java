@@ -1,3 +1,6 @@
+// Copyright 2020 ADTIMING TECHNOLOGY COMPANY LIMITED
+// Licensed under the GNU Lesser General Public License Version 3
+
 package com.adtiming.om.sc.task.web;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,14 +10,14 @@ import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.boot.web.servlet.error.ErrorAttributes;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
-@Controller
+@RestController
 @RequestMapping("/error")
 public class BaseErrorPage extends AbstractErrorController {
 
@@ -29,18 +32,10 @@ public class BaseErrorPage extends AbstractErrorController {
         super(errorAttributes, errorViewResolvers);
     }
 
-    @Deprecated
-    @Override
-    public String getErrorPath() {
-        return "/error";
-    }
-
     @RequestMapping
-    public ResponseEntity<?> error(HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> error(HttpServletRequest request) {
         Map<String, Object> body = getErrorAttributes(request, ErrorAttributeOptions.defaults());
         HttpStatus status = getStatus(request);
-        if (status == HttpStatus.NOT_FOUND)
-            return ResponseEntity.ok(""); // 防遍历, 404 转 200
         return new ResponseEntity<>(body, status);
     }
 

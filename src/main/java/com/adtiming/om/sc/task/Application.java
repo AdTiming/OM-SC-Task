@@ -2,8 +2,9 @@ package com.adtiming.om.sc.task;
 
 import com.adtiming.om.sc.task.dto.NodeConfig;
 import com.adtiming.om.sc.task.service.AppConfig;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.http.client.protocol.ResponseContentEncoding;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
@@ -14,10 +15,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.util.CollectionUtils;
+
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -27,6 +32,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class Application {
 
     private static final Logger LOG = LogManager.getLogger();
+
+    private Map<Integer, NodeConfig> nodeConfigs;
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -63,18 +70,32 @@ public class Application {
             }
             cfg.setNodeId(nodeid);
 
-            String url = String.format("http://%s:19012/snode/config/get?nodeid=%s&dcenter=%d&nc=0",
-                    cfg.getDtask(), nodeid, cfg.getDcenter());
-            NodeConfig nc = objectMapper.readValue(new URL(url), NodeConfig.class);
-            cfg.setSnode(nc.id);
-            LOG.info("OM-SC-TASK init, snode: {}, dc: {}, dtask: {}, {}",
-                    nc.id, cfg.getDcenter(), cfg.getDtask(), nc);
-            return nc;
+            String url = String.format("http://%s:19012/sc/config/list?nodeid=%s", cfg.getDtask(), nodeid);
+            JSONObject object = objectMapper.readValue(new URL(url), JSONObject.class);
+            if (object != null && !object.isEmpty()) {
+                JSONArray list = object.getJSONArray("data");
+                if (!CollectionUtils.isEmpty(list)) {
+                    nodeConfigs = new HashMap<>(list.size());
+                    for (int i = 0; i < list.size(); i++) {
+                        NodeConfig nc = list.getObject(i, NodeConfig.class);
+                        nodeConfigs.put(nc.getDcenter(), nc);
+                    }
+
+                    NodeConfig nc = nodeConfigs.get(cfg.getDcenter());
+                    LOG.info("OM-SC-TASK init, dc: {}, dtask: {}, {}", cfg.getDcenter(), cfg.getDtask(), nc);
+                    return nc;
+                }
+            }
         } catch (Exception e) {
-            LOG.error("load snode/config from dtask error", e);
+            LOG.error("load sc/list from dtask error", e);
             System.exit(1);
         }
         return new NodeConfig();
+    }
+
+    @Bean
+    public Map<Integer, NodeConfig> nodeConfigs() {
+        return nodeConfigs;
     }
 
 }

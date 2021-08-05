@@ -30,7 +30,7 @@ public class ConsumeService {
     private NodeConfig nc;
 
     @Resource
-    private DCenterService dcService;
+    private Map<Integer, NodeConfig> nodeConfigs;
 
     @Resource
     private CpCampaignService cpCampaignService;
@@ -51,33 +51,30 @@ public class ConsumeService {
         props.put(AUTO_OFFSET_RESET_CONFIG, "latest");
         props.put(KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
         props.put(VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-        if (StringUtils.isNoneBlank(nc.kafkaServers)) {
-            props.put(BOOTSTRAP_SERVERS_CONFIG, nc.kafkaServers);
+        if (StringUtils.isNoneBlank(nc.getKafkaServers())) {
+            props.put(BOOTSTRAP_SERVERS_CONFIG, nc.getKafkaServers());
             this.topics = new String[]{"cp_campaign_cap" + cfg.getDcenter()};
             for (String topic : topics) {
                 KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
                 consumer.subscribe(Collections.singletonList(topic));
-                String serverName = nc.kafkaServers.split(",")[0];
+                String serverName = nc.getKafkaServers().split(",")[0];
                 new Thread(() -> consumerKafka(serverName, cfg.getGroupId(), consumer), "consumer_" + topic).start();
             }
         }
 
         // 消费除本集群外的其他集群
         List<String> budgetDecrTopic = Collections.singletonList("cp_campaign_cap_decr");
-        Map<Integer, NodeConfig> nodeConfigMap = dcService.getDCenterMap();
-        if (nodeConfigMap != null) {
-            nodeConfigMap.forEach((dc, nodeConfig) -> {
-                if (dc == cfg.getDcenter() || StringUtils.isBlank(nodeConfig.kafkaServers)) {
-                    return; // 本集群预算已在 track 内扣减, 此处无需处理
-                }
-                String server = nodeConfig.kafkaServers;
-                String serverName = server.split(",")[0];
-                props.put(BOOTSTRAP_SERVERS_CONFIG, server);
-                KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
-                consumer.subscribe(budgetDecrTopic);
-                new Thread(() -> consumerKafka(serverName, cfg.getGroupId(), consumer), "consumer_budget_decr" + dc).start();
-            });
-        }
+        nodeConfigs.forEach((dc, nodeConfig) -> {
+            if (dc == cfg.getDcenter() || StringUtils.isBlank(nodeConfig.getKafkaServers())) {
+                return; // 本集群预算已在 track 内扣减, 此处无需处理
+            }
+            String server = nodeConfig.getKafkaServers();
+            String serverName = server.split(",")[0];
+            props.put(BOOTSTRAP_SERVERS_CONFIG, server);
+            KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
+            consumer.subscribe(budgetDecrTopic);
+            new Thread(() -> consumerKafka(serverName, cfg.getGroupId(), consumer), "consumer_budget_decr" + dc).start();
+        });
     }
 
     private void consumerKafka(String server, String groupId, KafkaConsumer<String, String> consumer) {
